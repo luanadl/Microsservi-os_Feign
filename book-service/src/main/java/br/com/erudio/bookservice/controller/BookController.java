@@ -1,6 +1,7 @@
 package br.com.erudio.bookservice.controller;
 
 import br.com.erudio.bookservice.model.Book;
+import br.com.erudio.bookservice.proxy.CambioProxy;
 import br.com.erudio.bookservice.repository.BookRepository;
 import br.com.erudio.bookservice.response.Cambio;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,10 @@ public class BookController {
     @Autowired
     private BookRepository repository;
 
+    @Autowired
+    private CambioProxy proxy;
+
+    /*
     @GetMapping(value = "/{id}/{currency}")
     public Book findBook(
             @PathVariable("id") Long id,
@@ -52,4 +57,28 @@ public class BookController {
 
         return book;
     }
+    */
+
+    @GetMapping(value = "/{id}/{currency}")
+    public Book findBook(
+            @PathVariable("id") Long id,
+            @PathVariable("currency") String currency
+    ) {
+
+        var book = repository.getReferenceById(id); //getById
+        if (book == null) throw new RuntimeException("Book not Found");
+
+        var cambio = proxy.getCambio(book.getPrice(), "USD", currency);
+
+        var port = environment.getProperty("local.server.port");
+        book.setEnvironment(port + " FEIGN") ;
+
+        assert cambio != null;
+        book.setPrice(cambio.getConvertedValue());
+
+        return book;
+    }
+
+
+
 }
